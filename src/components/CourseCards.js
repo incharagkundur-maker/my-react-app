@@ -1,4 +1,6 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import axios from "axios";
+import { toast } from "react-toastify";
 import {
   Clock,
   Target,
@@ -9,139 +11,118 @@ import {
   TrendingUp,
   ArrowLeft,
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuthModal } from "../context/AuthModalContext";
 
 const CourseCards = () => {
-  const courses = [
+  const [courses, setCourses] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const navigate = useNavigate();
+  const { user, loadingUser } = useAuthModal();
+
+  const BASE_URL =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.REACT_APP_BACKEND_URL ||
+    "http://localhost:8080";
+
+  // 🎨 Gradient & emoji rotation sets
+  const gradientList = [
+    "from-blue-500 to-cyan-400",
+    "from-green-500 to-emerald-400",
+    "from-pink-500 to-rose-400",
+    "from-orange-500 to-amber-400",
+    "from-indigo-500 to-violet-400",
+  ];
+
+  const emojiList = ["🧠", "💻", "🤖", "📊", "🔗", "🗄️"];
+
+  // 🧠 Static fallback (if API fails)
+  const staticCourses = [
     {
-      title: "Python for Data Science",
-      category: "Data Science & Analytics",
-      icon: "💻",
-      gradient: "from-blue-500 to-cyan-400",
-      description:
-        "Master Python programming with focus on data analysis, visualization, and scientific computing. Learn pandas, NumPy, Matplotlib, and more.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Beginner to Intermediate" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "8 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "500+ enrolled" },
-      ],
-      detailsBottom: [
-        "Hands-on coding with real datasets",
-        "Interactive Jupyter notebooks",
-        "Capstone project included",
-        "Industry-standard tools",
-      ],
-      rating: "4.9",
-    },
-    {
-      title: "Machine Learning Fundamentals",
-      category: "Artificial Intelligence",
-      icon: "🧠",
-      gradient: "from-green-500 to-emerald-400",
-      description:
-        "Comprehensive introduction to machine learning algorithms, model training, and deployment. Build real ML models from scratch.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Intermediate" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "10 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "450+ enrolled" },
-      ],
-      detailsBottom: [
-        "Supervised & unsupervised learning",
-        "Model evaluation techniques",
-        "Scikit-learn mastery",
-        "Real-world ML projects",
-      ],
-      rating: "4.8",
-    },
-    {
-      title: "Deep Learning with Neural Networks",
-      category: "AI & Neural Networks",
-      icon: "🔗",
-      gradient: "from-pink-500 to-rose-400",
-      description:
-        "Deep dive into neural networks, CNNs, RNNs, and transformers. Build state-of-the-art deep learning models using TensorFlow and PyTorch.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Advanced" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "12 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "350+ enrolled" },
-      ],
-      detailsBottom: [
-        "TensorFlow & PyTorch frameworks",
-        "Computer vision applications",
-        "NLP with transformers",
-        "GPU-accelerated training",
-      ],
-      rating: "4.9",
-    },
-    {
-      title: "Prompt Engineering & LLM Mastery",
-      category: "Generative AI",
-      icon: "🤖",
-      gradient: "from-orange-500 to-amber-400",
-      description:
-        "Master the art of prompt engineering with GPT-4, Claude, and other LLMs. Learn to build AI applications using modern prompt techniques.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Beginner to Advanced" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "6 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "600+ enrolled" },
-      ],
-      detailsBottom: [
-        "GPT-4 and Claude expertise",
-        "Advanced prompting strategies",
-        "AI app development",
-        "Chain-of-thought reasoning",
-      ],
-      rating: "5.0",
-    },
-    {
-      title: "Data Visualization Mastery",
-      category: "Data Science & Analytics",
-      icon: "📊",
-      gradient: "from-green-500 to-lime-400",
-      description:
-        "Create stunning, insightful data visualizations. Master Tableau, Power BI, D3.js, and Python visualization libraries.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Intermediate" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "6 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "400+ enrolled" },
-      ],
-      detailsBottom: [
-        "Tableau & Power BI dashboards",
-        "D3.js interactive charts",
-        "Storytelling with data",
-        "Dashboard design principles",
-      ],
-      rating: "4.7",
-    },
-    {
-      title: "SQL & Database Management",
-      category: "Data Engineering",
-      icon: "🗄️",
-      gradient: "from-indigo-500 to-violet-400",
+      course_name: "SQL & Database Management",
+      course_domain: "Data Engineering",
       description:
         "Master SQL queries, database design, and data engineering fundamentals. Learn PostgreSQL, MySQL, and NoSQL databases.",
-      detailsTop: [
-        { icon: <Target className="w-4 h-4 text-sky-500" />, text: "Beginner to Intermediate" },
-        { icon: <Clock className="w-4 h-4 text-emerald-500" />, text: "6 Weeks" },
-        { icon: <Users className="w-4 h-4 text-purple-500" />, text: "550+ enrolled" },
-      ],
-      detailsBottom: [
+      course_level: "Beginner to Intermediate",
+      how_many_weeks: 6,
+      total_enrolled: 550,
+      course_array: [
         "Advanced SQL queries",
         "Database design and normalization",
         "PostgreSQL & MySQL",
         "Query optimization",
       ],
-      rating: "4.8",
     },
   ];
+
+  // 🧩 Fetch Courses
+  useEffect(() => {
+    const handleGetCourses = async () => {
+      try {
+        const result = await axios.get(`${BASE_URL}/api/course/getcourse`, {
+          withCredentials: true,
+        });
+        const fetchedCourses = result.data.domains || result.data;
+
+        const formatted = fetchedCourses.map((course, i) => ({
+          title: course.course_name,
+          category: course.course_domain,
+          icon: emojiList[i % emojiList.length],
+          gradient: gradientList[i % gradientList.length],
+          description: course.description,
+          detailsTop: [
+            {
+              icon: <Target className="w-4 h-4 text-sky-500" />,
+              text: course.course_level,
+            },
+            {
+              icon: <Clock className="w-4 h-4 text-emerald-500" />,
+              text: `${course.how_many_weeks} Weeks`,
+            },
+            {
+              icon: <Users className="w-4 h-4 text-purple-500" />,
+              text: `${course.total_enrolled}+ enrolled`,
+            },
+          ],
+          detailsBottom: course.course_array || [],
+          rating: "4.8",
+          courseweek: course.course_week_array,
+        }));
+
+        setCourses(formatted);
+      } catch (error) {
+        console.error("❌ API Fetch Error:", error);
+        toast.error("Couldn't fetch courses — showing defaults");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    handleGetCourses();
+  }, [BASE_URL]);
+
+  useEffect(() => {
+    if (!loadingUser && !user) {
+      navigate("/");
+    }
+  }, [user, loadingUser, navigate]);
+
+  const handleViewSyllabus = (course) => {
+    console.log(course.course_week_array);
+    navigate("/coursesyllabus", {
+      state: { syllabusData: course.courseweek, title: course.title },
+    });
+  };
 
   return (
     <div className="pt-18">
       {/* 🌟 Hero Section */}
       <section className="relative overflow-hidden min-h-screen flex flex-col justify-center items-center bg-gradient-to-b from-green-50 to-green-100 dark:from-[#0A0F2C] dark:via-[#0B1739] dark:to-[#0D102B] transition-all duration-500 py-24 px-6">
+        {/* Animated Background Glow */}
         <div className="absolute top-10 left-16 w-72 h-72 bg-teal-200 rounded-full blur-3xl opacity-25 animate-pulse"></div>
         <div className="absolute bottom-10 right-16 w-96 h-96 bg-cyan-200 rounded-full blur-3xl opacity-30 animate-pulse"></div>
 
+        {/* Back Button */}
         <div className="absolute top-8 left-8 text-teal-600 text-sm font-medium flex items-center gap-2 hover:text-teal-800 transition">
           <ArrowLeft className="w-4 h-4" />
           <Link to="/" className="hover:underline">
@@ -149,22 +130,10 @@ const CourseCards = () => {
           </Link>
         </div>
 
+        {/* Logo */}
         <div className="absolute top-6 right-8 flex items-center gap-3">
           <div className="w-11 h-11 flex items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-400 to-teal-500 shadow-[0_6px_20px_rgba(0,200,150,0.5)]">
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              className="w-6 h-6 text-white"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M12 3l2.5 6.5L21 12l-6.5 2.5L12 21l-2.5-6.5L3 12l6.5-2.5L12 3z"
-              />
-            </svg>
+            <BookOpen className="w-6 h-6 text-white" />
           </div>
           <div className="flex flex-col">
             <h2 className="text-emerald-700 font-semibold text-lg tracking-tight">
@@ -176,6 +145,7 @@ const CourseCards = () => {
           </div>
         </div>
 
+        {/* Title */}
         <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-gradient-to-r from-emerald-100 to-teal-100 text-emerald-800 font-medium shadow-sm hover:shadow-md transition-all duration-300">
           ⚡ AI-Powered Micro Courses
         </div>
@@ -190,19 +160,38 @@ const CourseCards = () => {
           and expert mentorship.
         </p>
 
+        {/* ✅ Expert Courses / Active Learners / Completion Rate */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8 text-center max-w-5xl w-full px-4">
           {[
-            { icon: <BookOpen className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />, title: "6+", subtitle: "Expert Courses" },
-            { icon: <Users className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />, title: "2500+", subtitle: "Active Learners" },
-            { icon: <Award className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />, title: "95%", subtitle: "Completion Rate" },
+            {
+              icon: (
+                <BookOpen className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />
+              ),
+              title: "6+",
+              subtitle: "Expert Courses",
+            },
+            {
+              icon: <Users className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />,
+              title: "2500+",
+              subtitle: "Active Learners",
+            },
+            {
+              icon: <Award className="w-6 h-6 text-emerald-600 mb-3 mx-auto" />,
+              title: "95%",
+              subtitle: "Completion Rate",
+            },
           ].map((item, i) => (
             <div
               key={i}
-              className="bg-white/70 backdrop-blur-md rounded-2xl shadow-md p-8 hover:shadow-lg transition-all duration-300 flex flex-col items-center"
+              className="bg-white/70 dark:bg-[#0E1835]/70 backdrop-blur-md rounded-2xl shadow-md p-8 hover:shadow-lg transition-all duration-300 flex flex-col items-center"
             >
               {item.icon}
-              <p className="text-3xl font-bold text-emerald-600 mb-1">{item.title}</p>
-              <p className="text-slate-700 text-sm font-medium">{item.subtitle}</p>
+              <p className="text-3xl font-bold text-emerald-600 mb-1">
+                {item.title}
+              </p>
+              <p className="text-slate-700 dark:text-gray-300 text-sm font-medium">
+                {item.subtitle}
+              </p>
             </div>
           ))}
         </div>
@@ -210,82 +199,107 @@ const CourseCards = () => {
 
       {/* 💡 Course Cards Section */}
       <div className="w-full flex flex-col gap-8 p-8 bg-white dark:bg-[#0B1120] rounded-2xl shadow-md border border-gray-100 dark:border-none font-sans transition-all duration-500">
-        {courses.map((course, i) => (
-          <div
-            key={i}
-            className="bg-white/90 dark:bg-[#0E1835]/90 backdrop-blur-md border border-gray-100 dark:border-gray-700/40 rounded-2xl shadow-md hover:shadow-lg transition-all duration-500 overflow-hidden"
-          >
-            <div className={`h-1 w-full bg-gradient-to-r ${course.gradient}`}></div>
-            <div className="p-8">
-              <div className="flex justify-between items-start mb-5">
-                <div className="flex items-center gap-5">
-                  <div
-                    className={`w-12 h-12 rounded-xl bg-gradient-to-br ${course.gradient} flex items-center justify-center text-2xl shadow-md`}
-                  >
-                    <span className="text-white">{course.icon}</span>
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-semibold text-gray-900 dark:text-white leading-tight tracking-wide">
-                      {course.title}
-                    </h3>
-                    <span
-                      className={`inline-block mt-2 text-xs sm:text-sm px-3 py-1 rounded-full bg-gradient-to-r ${course.gradient} text-white font-medium shadow-sm`}
+        {loading ? (
+          <p className="text-center text-gray-500 dark:text-gray-400">
+            Loading courses...
+          </p>
+        ) : (
+          courses.map((course, i) => (
+            <div
+              key={i}
+              className="bg-white/90 dark:bg-[#0E1835]/90 backdrop-blur-md border border-gray-100 dark:border-gray-700/40 rounded-2xl shadow-md hover:shadow-lg transition-all duration-500 overflow-hidden"
+            >
+              {/* Gradient bar */}
+              <div
+                className={`h-1 w-full bg-gradient-to-r ${course.gradient}`}
+              ></div>
+
+              {/* Card inner */}
+              <div className="p-8 pl-6">
+                {" "}
+                {/* 👈 added slight left shift */}
+                <div className="flex justify-between items-start mb-5">
+                  <div className="flex items-center gap-4">
+                    {/* 🔥 Enlarged icon */}
+                    <div
+                      className={`w-16 h-16 rounded-2xl bg-gradient-to-br ${course.gradient} flex items-center justify-center text-4xl shadow-md`}
                     >
-                      {course.category}
-                    </span>
+                      <span className="text-white">{course.icon}</span>
+                    </div>
+
+                    {/* Title + Category */}
+                    <div className="ml-2">
+                      <h3 className="text-xl font-semibold text-gray-900 dark:text-white leading-tight tracking-wide">
+                        {course.title}
+                      </h3>
+                      <span
+                        className={`inline-block mt-2 text-xs sm:text-sm px-3 py-1 rounded-full bg-gradient-to-r ${course.gradient} text-white font-medium shadow-sm`}
+                      >
+                        {course.category}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* ⭐ Rating */}
+                  <div className="text-yellow-500 font-medium text-lg">
+                    ⭐ {course.rating}
                   </div>
                 </div>
-                <div className="text-yellow-500 font-medium text-lg">
-                  ⭐ {course.rating}
+                {/* Description */}
+                <p className="text-gray-700 dark:text-gray-300 text-[15px] leading-relaxed mb-4 ml-24">
+                  {course.description}
+                </p>
+                {/* Top details (level, weeks, enrolled) */}
+                <div className="flex items-center gap-8 text-sm text-gray-700 dark:text-gray-300 mb-4 ml-24">
+                  {course.detailsTop.map((detail, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      {/* slightly larger icons for detail clarity */}
+                      <span className="text-lg">{detail.icon}</span>{" "}
+                      {detail.text}
+                    </div>
+                  ))}
                 </div>
+                {/* Bottom points */}
+                <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 dark:text-gray-300 mb-4 ml-24">
+                  {course.detailsBottom.map((detail, j) => (
+                    <div key={j} className="flex items-center gap-2">
+                      <CheckCircle className="w-4 h-4 text-emerald-500" />{" "}
+                      {detail}
+                    </div>
+                  ))}
+                </div>
+                {/* Syllabus link */}
+                <button
+                  onClick={() => handleViewSyllabus(course)}
+                  className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800 font-medium text-sm transition mt-8 ml-5"
+                >
+                  📘 View Complete Syllabus
+                </button>
               </div>
-
-              <p className="text-gray-700 dark:text-gray-300 text-[15px] leading-relaxed mb-4">
-                {course.description}
-              </p>
-
-              <div className="flex items-center gap-6 text-sm text-gray-700 dark:text-gray-300 mb-4">
-                {course.detailsTop.map((detail, j) => (
-                  <div key={j} className="flex items-center gap-2">
-                    {detail.icon} {detail.text}
-                  </div>
-                ))}
-              </div>
-
-              <div className="grid grid-cols-2 gap-2 text-sm text-gray-700 dark:text-gray-300 mb-4">
-                {course.detailsBottom.map((detail, j) => (
-                  <div key={j} className="flex items-center gap-2">
-                    <CheckCircle className="w-4 h-4 text-emerald-500" /> {detail}
-                  </div>
-                ))}
-              </div>
-
-              <Link
-                to="/syllabus"
-                className="flex items-center gap-2 text-emerald-600 hover:text-emerald-800 font-medium text-sm transition mt-8"
-              >
-                📘 View Complete Syllabus
-              </Link>
             </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
 
       {/* 💬 Recommendation Section */}
-      <section className="bg-gradient-to-b from-green-50 to-green-100 rounded-2xl p-12 mt-14 shadow-sm text-center border border-transparent transition-all duration-500">
+      <section className="bg-gradient-to-b from-emerald-50 via-teal-50 to-cyan-50 dark:from-[#0A0F2C] dark:via-[#0B1739] dark:to-[#0D102B] rounded-2xl p-12 mt-14 shadow-md text-center border border-emerald-100 dark:border-teal-700/40 transition-all duration-500">
         <div className="flex flex-col items-center space-y-6">
-          <div className="bg-gradient-to-br from-emerald-500 to-teal-500 p-5 rounded-2xl shadow-lg transition-all duration-500">
+          <div className="bg-gradient-to-br from-emerald-500 via-teal-500 to-cyan-500 p-5 rounded-2xl shadow-[0_8px_30px_rgba(0,255,200,0.25)]">
             <TrendingUp className="w-10 h-10 text-white" strokeWidth={2.5} />
           </div>
-          <h2 className="text-2xl font-semibold text-gray-800">
+
+          <h2 className="text-2xl font-semibold text-gray-800 dark:text-white drop-shadow-sm">
             Not Sure Where to Start?
           </h2>
-          <p className="text-gray-600 max-w-2xl text-base leading-relaxed">
-            Get personalized course recommendations from our AI career counselor.
-            We’ll help you choose the perfect learning path based on your goals.
+
+          <p className="text-gray-600 dark:text-gray-300 max-w-2xl text-base leading-relaxed">
+            Get personalized course recommendations from our AI career
+            counselor. We’ll help you choose the perfect learning path based on
+            your goals.
           </p>
-          <button className="flex items-center justify-center gap-2 bg-emerald-500 hover:bg-emerald-600 text-white px-6 py-2.5 rounded-xl font-medium shadow-md hover:shadow-lg transition-all duration-300 transform hover:-translate-y-0.5">
-            <span className="w-3 h-3 bg-pink-300 rounded-full shadow-inner"></span>
+
+          <button className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 hover:opacity-90 text-white px-6 py-2.5 rounded-xl font-medium shadow-lg hover:shadow-[0_8px_25px_rgba(0,255,180,0.25)] transition-all duration-300 transform hover:-translate-y-0.5">
+            <span className="w-3 h-3 bg-pink-300 rounded-full shadow-inner animate-pulse"></span>
             Get AI Recommendations
           </button>
         </div>
